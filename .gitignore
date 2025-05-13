@@ -1,0 +1,31 @@
+# Ignore Python bytecode and cache
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Ignore environment/config secrets
+.env
+
+# Ignore Django static and media (optional if served by Django in dev)
+static/
+media/
+
+# Ignore logs and compiled files
+*.log
+
+# Ignore IDE/editor config
+.vscode/
+.idea/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Node.js (if using for front-end tools like webpack)
+node_modules/

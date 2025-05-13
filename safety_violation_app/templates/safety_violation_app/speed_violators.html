@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Top Speed Violators</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Elegant Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Flatpickr Date Picker -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+
+    <!-- Vue 3 -->
+    <!--     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>   -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f6fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+        }
+
+        .sidebar {
+            min-width: 200px;
+            max-width: 250px;
+            background-color: #ffffff;
+            border-right: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            display: none;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+        }
+
+        .form-row {
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .form-row input {
+            max-width: 110px;
+            height: 36px;
+        }
+
+        .form-row button {
+            white-space: nowrap;
+        }
+
+        .centered-form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .table-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background-color: #fff;
+        }
+        .date-input {
+            width: 160px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+            <div class="container-fluid">
+                <button class="btn btn-outline-light me-2" @click="toggleSidebar">☰</button>
+                <a class="navbar-brand" href="#">Violation Tracker</a>
+            </div>
+        </nav>
+
+        <!-- Main App Content -->
+        <div class="main-wrapper">
+            <!-- Sidebar -->
+            <div :class="['sidebar', { collapsed: isSidebarCollapsed }]" class="p-3">
+                <h6 class="text-muted">Menu</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="#" class="nav-link">Submit Violation</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link">All violations</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link">Dashboard</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Centered Top Form Line -->
+                <div class="centered-form">
+                    <div class="d-flex form-row flex-wrap justify-content-center text-center">
+                        <span>Show employees who have violated</span>
+                        <select v-model="violationCount" class="form-select form-select-sm" style="width: 100px;">
+                            <option :value="1">1</option>
+                            <option :value="2">2</option>
+                            <option :value="3">3</option>
+                            <option :value="4">4</option>
+                            <option :value="5">5</option>
+                            <option :value="6">6 or more</option>
+                        </select>
+                        <span>time(s)  during the period between</span>
+                        <input type="text" ref="startDate" v-model="startDate" class="form-control form-control-sm date-input" />
+                        <span>and</span>
+                        <input type="text" ref="endDate" v-model="endDate" class="form-control form-control-sm date-input" />
+                        <span>with a speed greater than</span>
+                        <input type="number" v-model="speed" class="form-control" min="1" />
+                        <button class="btn btn-primary" @click="fetchData">GO</button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrapper">   
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                          <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0" @click="submitSelected">
+                            Generate Advisory ({{ selectedEmployees.length }})
+                          </button>
+                          <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0" @click="mailToHOD">
+                            Mail to HOD ({{ selectedEmployees.length }})
+                          </button>
+                        </div>
+                        <div>
+                          <button class="btn btn-outline-primary" @click="downloadExcel" title="Download Excel">
+                            📥 Export
+                          </button>
+                        </div>
+                      </div>           
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark text-center">
+                            <tr>
+                                <th><input type="checkbox" @change="toggleSelectAll" v-model="selectAll" /></th>
+                                <th>Staff No.</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Designation</th>
+                                <th>No. of Violations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(emp, index) in employees" :key="index">
+                                <td class="text-center">
+                                    <input type="checkbox" :value="emp" v-model="selectedEmployees" />
+                                </td>
+                                <td>[[ emp.staff_no ]]</td>
+                                <td>[[ emp.name ]]</td>
+                                <td>[[ emp.department ]]</td>
+                                <td>[[ emp.designation ]]</td>
+                                <td>[[ emp.no_of_violations ]]</td>
+                            </tr>
+                            <tr v-if="employees.length === 0">
+                                <td colspan="8" class="text-center text-muted">No data found</td>
+                            </tr>
+                        </tbody>
+                    </table>                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../static/safety_violation_app/index.js"></script>
+</body>
+</html>
