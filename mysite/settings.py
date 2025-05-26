@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure-qrpq(yd@jty^-pfqzn2ze_u_on65k^b0%-vf6bfvt@jz=7+bl8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['13.62.23.100', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -49,11 +50,16 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
 
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+CELERY_TIMEZONE = 'UTC'  # or your local timezone
+CELERY_ENABLE_UTC = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -98,10 +104,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'safety_violation_db',
-        'USER': 'abhijit',
-        'PASSWORD': '8986825894',
-        'HOST': 'localhost',
+        'NAME': 'safety_violations_db',
+        'USER': 'abhijit_singh',
+        'PASSWORD': 'Aks@827454',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
     }
 }

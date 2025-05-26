@@ -9,6 +9,7 @@ import openpyxl
 import requests
 from django.db.models import Q
 from datetime import datetime, timedelta
+from django.utils.timezone import make_aware
 
 def index(request):
     return render(request, "safety_violation_app/speed_violators.html")
@@ -95,41 +96,52 @@ def get_vehicle_details(request):
 
 @api_view(['GET','POST'])
 def update_speed_violations(request): #used to update the database with violations of the previous day
-    if request.method=='POST':
         start_date = (datetime.strptime(str((datetime.now() - timedelta(1)).strftime('%Y-%m-%d'))+" 00:00:00", '%Y-%m-%d %H:%M:%S')).strftime('%Y-%m-%d %H:%M:%S')
         end_date = (datetime.strptime(str((datetime.now() - timedelta(1)).strftime('%Y-%m-%d'))+" 23:59:00", '%Y-%m-%d %H:%M:%S')).strftime('%Y-%m-%d %H:%M:%S')
         url = 'https://api.streetsoncloud.com/v4/tickets-list'
         headers = {'Content-Type': 'application/json',
-                 'Range': 'items=0-10',
-                  'x-api-key':'0YjoQrlmP87aseagqbw2i75weVuTONplavJn4UFu',
-                  'X-Requested-With':'XMLHttpRequest'}
-        data = {"dateFrom":start_date,
-                "dateTo": end_date,
-                "exportStatus": None,
-                "status":-4,
-                "accountId":5574,
-                "units": 1,
-                "optional": True}
-        results = requests.post(url, json=data, headers = headers)
-        if (results.status_code==200):
-            for violation in results.json()['tickets']:
-                vehicle = Vehicles.objects.filter(Q(first_vehicle=violation['plateText']) | Q(second_vehicle=violation['plateText'])).first()
-                if (vehicle):
-                    employee = Employee.objects.get(staff_no=vehicle.staff_no)
-                    speed_violation = SpeedViolations(employee=employee,
+                        'Range': 'items=0-10',
+                        'x-api-key':'0YjoQrlmP87aseagqbw2i75weVuTONplavJn4UFu',
+                        'X-Requested-With':'XMLHttpRequest'}
+        final_result = []
+        for i in range(-4,10):
+                data = {"dateFrom":start_date,
+                        "dateTo": end_date,
+                        "exportStatus": None,
+                        "status":i,
+                        "accountId":5574,
+                        "units": 1,
+                        "optional": True}
+                results = requests.post(url, json=data, headers = headers)
+                if (results.status_code==200):
+                        final_result+=results.json()['tickets']
+                else:
+                        return Response({'error':'streetsoncloud API error'},status=results.status_code) 
+        for violation in final_result:
+                vehicle = Vehicles.objects.filter(
+                Q(first_vehicle=violation['plateText']) | Q(second_vehicle=violation['plateText'])
+                ).first()
+                if vehicle:
+                        try:
+                                employee = Employee.objects.get(staff_no=vehicle.staff_no)
+                                speed_violation = SpeedViolations(
+                                employee=employee,
                                 date=violation['dateTimeLocal'],
                                 location=violation['location'],
                                 plate_text=violation['plateText'],
-                                speed=int(float((violation['speedObserved']))*1.60934))  #converting mph to kmph
-                    speed_violation.save()
+                                speed=int(float((violation['speedObserved'])) * 1.60934)  # mph to km/h
+                                )
+                                speed_violation.save()
+                        except Employee.DoesNotExist:
+                                print(f"Employee with staff_no {vehicle.staff_no} does not exist.")
                 else:
-                    continue
-            return Response({'message':'Databse successfully updated'},status=200)                     
-        else:
-            return Response({'error':'streetsoncloud API error'},status=results.status_code) 
+                        print(f"No vehicle match found for plateText: {violation['plateText']}")
+        return Response({'message':'Databse updated successfully'},status=200)
 
 @api_view(['GET','POST'])
 def get_no_of_speed_violations(request, start_date, end_date, no_of_violations, speed):
+    start_date = datetime.strptime(str(start_date)+" 00:00:01", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+    end_date = datetime.strptime(str(end_date)+" 23:59:59", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
     query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gte=speed)
     result = []
     staff_nos = []
@@ -139,12 +151,11 @@ def get_no_of_speed_violations(request, start_date, end_date, no_of_violations, 
         else:
             staff_nos.append(q.employee.staff_no)
             count = query_result.filter(employee__staff_no=q.employee.staff_no).count()
-            result.append({"staff_no":q.employee.staff_no,
-                        "name":q.employee.name,
-                        "department":q.employee.department,
-                        "designation":q.employee.designation,
-                        "no_of_violations":count})
+            if (count==no_of_violations  or (no_of_violations==6 and count>=6)):
+                result.append({"staff_no":q.employee.staff_no,
+                            "name":q.employee.name,
+                            "department":q.employee.department,
+                            "designation":q.employee.designation,
+                            "no_of_violations":count})
     serializer = NoOfSpeedViolationSerializer(result, many=True)
     return Response(serializer.data)
-    
-            
