@@ -14,6 +14,24 @@ from django.utils.timezone import make_aware
 def index(request):
     return render(request, "safety_violation_app/speed_violators.html")
 
+def search_speed_violators(request):
+    return render(request, "safety_violation_app/search_speed_violators.html")
+
+@api_view(['GET'])
+def search_speed_violations(request, staffNo, vehicleNo, start_date, end_date, speed):
+    if request.method=="GET":
+        start_date = datetime.strptime(str(start_date)+" 00:00:01", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.strptime(str(end_date)+" 23:59:59", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        if (vehicleNo=="any" and staffNo!="any"):
+            query_result = SpeedViolations.objects.filter(employee__staff_no=staffNo, date__gte=start_date, date__lte=end_date, speed__gte=speed).all()      
+        elif (staffNo=="any" and vehicleNo!="any"):
+            query_result = SpeedViolations.objects.filter(plate_text=vehicleNo, date__gte=start_date, date__lte=end_date, speed__gte=speed).all()
+        elif(vehicleNo=="any" and staffNo=="any"):
+            query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gte=speed).all()
+        serializer = ViolationSerializer(query_result, many=True)
+        return Response(serializer.data)
+
+
 @api_view(['GET','POST'])
 def get_employees(request):
     if request.method=="GET":

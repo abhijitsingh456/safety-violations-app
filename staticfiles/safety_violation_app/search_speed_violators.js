@@ -2,12 +2,12 @@ Vue.createApp({
     data() {
         return {
             isSidebarCollapsed: true,
-            topN: 5,
-            violationCount: 1,
+            staffNo: '',
+            vehicleNo: '',
             startDate: '',
             endDate: '',
             speed: 30,
-            employees: [],
+            violations: [],
             selectedEmployees: [],
             selectAll: false
         };
@@ -16,15 +16,22 @@ Vue.createApp({
         toggleSidebar() {
             this.isSidebarCollapsed = !this.isSidebarCollapsed;
         },
-        async fetchData() {
-            const url=`/api/get_no_of_speed_violations/${this.startDate}/${this.endDate}/${this.violationCount}/${this.speed}/`
+        async fetchViolations() {
+            url=''
+            if(this.staffNo=='' && this.vehicleNo!=''){
+                url=`/api/search_speed_violations/any/${this.vehicleNo}/${this.startDate}/${this.endDate}/${this.speed}/`
+            }else if(this.vehicleNo=='' && this.staffNo!=''){
+                url=`/api/search_speed_violations/${this.staffNo}/any/${this.startDate}/${this.endDate}/${this.speed}/`
+            }else if(this.staffNo=='' && this.vehicleNo==''){
+                url=`/api/search_speed_violations/any/any/${this.startDate}/${this.endDate}/${this.speed}/`
+            }   
             try{
                 const response = await fetch(url)
                 if (!response.ok){
                     throw new Error(`Respose Status: ${response.status}`)
                 }
             rawData = await response.json();
-            this.employees = rawData.map(emp => ({ ...emp }));
+            this.violations = rawData.map(emp => ({ ...emp }));
             this.selectedEmployees = []; // reset selections
             this.selectAll = false;
             }catch(error){
@@ -33,34 +40,20 @@ Vue.createApp({
         },
         toggleSelectAll() {
             if (this.selectAll) {
-            this.selectedEmployees = [...this.employees];
+            this.selectedEmployees = [...this.violations];
             } else {
             this.selectedEmployees = [];
             }
-        },
-        submitSelected() {
-            // Simulate an API call
-            console.log("Submitting selected employees:", this.selectedEmployees);
-
-            // Example POST logic (mocked):
-            // fetch('/api/submit', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(this.selectedEmployees)
-            // })
-
-            alert(`Submitted ${this.selectedEmployees.length} selected entries!`);
         },
         downloadExcel() {
             const wb = XLSX.utils.book_new();
             const wsData = [
                 ["Staff No.", "Name", "Department", "Designation", "No. of Violations"],
-                ...this.employees.map(emp => [
-                emp.staff_no,
+                ...this.violations.map(emp => [
+                emp.staffNo,
                 emp.name,
                 emp.department,
                 emp.designation,
-                emp.no_of_violations
                 ])
             ];
 
