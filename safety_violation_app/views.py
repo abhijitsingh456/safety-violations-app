@@ -169,7 +169,7 @@ def get_no_of_speed_violations(request, start_date, end_date, no_of_violations, 
         else:
             staff_nos.append(q.employee.staff_no)
             count = query_result.filter(employee__staff_no=q.employee.staff_no).count()
-            if (count==no_of_violations  or (no_of_violations==6 and count>=6)):
+            if (count==no_of_violations  or (no_of_violations==6 and count>=6) or (no_of_violations==0 and count>=0)):
                 result.append({"staff_no":q.employee.staff_no,
                             "name":q.employee.name,
                             "department":q.employee.department,

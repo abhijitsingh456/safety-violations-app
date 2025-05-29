@@ -127,6 +127,7 @@
                             <option :value="4">4</option>
                             <option :value="5">5</option>
                             <option :value="6">6 or more</option>
+                            <option :value="0">any no. of</option>
                         </select>
                         <span>time(s)  during the period between</span>
                         <input type="text" ref="startDate" v-model="startDate" class="form-control form-control-sm date-input" />
@@ -164,6 +165,7 @@
                                 <th>Department</th>
                                 <th>Designation</th>
                                 <th>No. of Violations</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -176,6 +178,7 @@
                                 <td>[[ emp.department ]]</td>
                                 <td>[[ emp.designation ]]</td>
                                 <td>[[ emp.no_of_violations ]]</td>
+                                <td><a :href="`/search_speed_violators/?staffNo=${emp.staff_no}&startDate=${startDate}&endDate=${endDate}&speed=${speed}`">View Details</a></td>
                             </tr>
                             <tr v-if="employees.length === 0">
                                 <td colspan="8" class="text-center text-muted">No data found</td>

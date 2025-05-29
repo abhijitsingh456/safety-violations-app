@@ -76,6 +76,12 @@ Vue.createApp({
               this.endDate = selectedDate.toISOString().split('T')[0]; // get only date
             }
           });
+        const urlParams = new URLSearchParams(window.location.search)
+        this.staffNo = urlParams.get('staffNo')
+        this.startDate = urlParams.get('startDate')
+        this.endDate = urlParams.get('endDate')
+        this.speed = urlParams.get('speed')
+        this.fetchViolations()
       },
       delimiters: ['[[', ']]']
 }).mount("#app");
