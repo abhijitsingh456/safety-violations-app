@@ -88,6 +88,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             background-color: #fff;
         }
+
         .date-input {
             width: 160px;
         }
@@ -110,7 +111,10 @@
             <div :class="['sidebar', { collapsed: isSidebarCollapsed }]" class="p-3">
                 <h6 class="text-muted">Menu</h6>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a href="/search_speed_violators/" class="nav-link">Search by Staff No./Vehicle No.</a></li>
+                    <li class="nav-item"><a href="/search_speed_violators/" class="nav-link">Search by Staff No./Vehicle
+                            No.</a></li>
+                    <li class="nav-item"><a href="/upload_from_old_camera/" class="nav-link">Upload from Old Camera</a>
+                    </li>
                 </ul>
             </div>
 
@@ -129,10 +133,12 @@
                             <option :value="6">6 or more</option>
                             <option :value="0">any no. of</option>
                         </select>
-                        <span>time(s)  during the period between</span>
-                        <input type="text" ref="startDate" v-model="startDate" class="form-control form-control-sm date-input" />
+                        <span>time(s) during the period between</span>
+                        <input type="text" ref="startDate" v-model="startDate"
+                            class="form-control form-control-sm date-input" />
                         <span>and</span>
-                        <input type="text" ref="endDate" v-model="endDate" class="form-control form-control-sm date-input" />
+                        <input type="text" ref="endDate" v-model="endDate"
+                            class="form-control form-control-sm date-input" />
                         <span>with a speed greater than</span>
                         <input type="number" v-model="speed" class="form-control" min="1" />
                         <button class="btn btn-primary" @click="fetchData">GO</button>
@@ -140,22 +146,24 @@
                 </div>
 
                 <!-- Table -->
-                <div class="table-wrapper">   
+                <div class="table-wrapper">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div>
-                          <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0" @click="submitSelected">
-                            Generate Advisory ({{ selectedEmployees.length }})
-                          </button>
-                          <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0" @click="mailToHOD">
-                            Mail to HOD ({{ selectedEmployees.length }})
-                          </button>
+                            <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0"
+                                @click="submitSelected">
+                                Generate Advisory ({{ selectedEmployees.length }})
+                            </button>
+                            <button class="btn btn-success me-2" :disabled="selectedEmployees.length === 0"
+                                @click="mailToHOD">
+                                Mail to HOD ({{ selectedEmployees.length }})
+                            </button>
                         </div>
                         <div>
-                          <button class="btn btn-outline-primary" @click="downloadExcel" title="Download Excel">
-                            📥 Export
-                          </button>
+                            <button class="btn btn-outline-primary" @click="downloadExcel" title="Download Excel">
+                                📥 Export
+                            </button>
                         </div>
-                      </div>           
+                    </div>
                     <table class="table table-bordered table-striped">
                         <thead class="table-dark text-center">
                             <tr>
@@ -178,22 +186,24 @@
                                 <td>[[ emp.department ]]</td>
                                 <td>[[ emp.designation ]]</td>
                                 <td>[[ emp.no_of_violations ]]</td>
-                                <td><a :href="`/search_speed_violators/?staffNo=${emp.staff_no}&startDate=${startDate}&endDate=${endDate}&speed=${speed}`">View Details</a></td>
+                                <td><a
+                                        :href="`/search_speed_violators/?staffNo=${emp.staff_no}&startDate=${startDate}&endDate=${endDate}&speed=${speed}`">View
+                                        Details</a></td>
                             </tr>
                             <tr v-if="employees.length === 0">
                                 <td colspan="8" class="text-center text-muted">No data found</td>
                             </tr>
                         </tbody>
-                    </table>                    
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    {% load static %} 
+    {% load static %}
     <script src="{% static 'safety_violation_app/index.js' %}"></script>
 </body>
+
 </html>

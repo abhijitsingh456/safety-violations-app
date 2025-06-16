@@ -10,6 +10,11 @@ import requests
 from django.db.models import Q
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
+from django.db import IntegrityError
+import pandas as pd
+from django.views.decorators.csrf import csrf_exempt
+import logging
+logger = logging.getLogger(__name__)
 
 def index(request):
     return render(request, "safety_violation_app/speed_violators.html")
@@ -17,20 +22,79 @@ def index(request):
 def search_speed_violators(request):
     return render(request, "safety_violation_app/search_speed_violators.html")
 
+
 @api_view(['GET'])
 def search_speed_violations(request, staffNo, vehicleNo, start_date, end_date, speed):
     if request.method=="GET":
         start_date = datetime.strptime(str(start_date)+" 00:00:01", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
         end_date = datetime.strptime(str(end_date)+" 23:59:59", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
         if (vehicleNo=="any" and staffNo!="any"):
-            query_result = SpeedViolations.objects.filter(employee__staff_no=staffNo, date__gte=start_date, date__lte=end_date, speed__gte=speed).all()      
+            query_result = SpeedViolations.objects.filter(employee__staff_no=staffNo, date__gte=start_date, date__lte=end_date, speed__gt=speed).all()      
         elif (staffNo=="any" and vehicleNo!="any"):
-            query_result = SpeedViolations.objects.filter(plate_text=vehicleNo, date__gte=start_date, date__lte=end_date, speed__gte=speed).all()
+            query_result = SpeedViolations.objects.filter(plate_text=vehicleNo, date__gte=start_date, date__lte=end_date, speed__gt=speed).all()
         elif(vehicleNo=="any" and staffNo=="any"):
-            query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gte=speed).all()
+            query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gt=speed).all()
         serializer = ViolationSerializer(query_result, many=True)
         return Response(serializer.data)
 
+@api_view(['GET'])
+def history_upload_from_old_camera(request):
+    if request.method=='GET':
+        query_result = OldCameraUploadRecord.objects.all() 
+        serializer = OldCameraUploadRecordSerializer(query_result,many=True) 
+        return Response(serializer.data)
+
+def upload_from_old_camera(request):
+    return render(request,"safety_violation_app/upload_from_old_camera.html")
+
+@csrf_exempt
+@api_view(['POST'])
+def update_from_old_camera(request):
+    if request.method=='POST':
+        uploaded_file=request.FILES.get('file')
+        if not uploaded_file:
+            return Response({'error':'No File Uploaded'},status=400)
+        if not uploaded_file.name.endswith(('.csv')):
+            return Response({'error':'Invalid File Type'},status=400)
+        try:
+            df = pd.read_csv(uploaded_file,sep=';')
+            req_columns = ['Time','Site Name','Registration Num','Speed Value']
+            for col in req_columns:
+                if col not in df.columns:
+                    return Response({'error':'Invalid Column Names'},status=400)
+            min_date = df['Time'].min()
+            max_date = df['Time'].max()
+            violations = df.to_dict('records')
+            for violation in violations:
+                vehicle = Vehicles.objects.filter(
+                Q(first_vehicle=violation['Registration Num']) | Q(second_vehicle=violation['Registration Num'])
+                ).first()
+                if vehicle:
+                    try:
+                        employee = Employee.objects.get(staff_no=vehicle.staff_no)
+                        speed_violation = SpeedViolations(
+                        employee=employee,
+                        date=violation['Time'],
+                        location="PLANT PLAZA "+violation['Site Name'],
+                        plate_text=violation['Registration Num'],
+                        speed=violation["Speed Value"]
+                        )
+                        try:
+                            speed_violation.save()
+                        except IntegrityError:
+                            logger.info("Duplicate speed violation entry ignored.")
+                    except Employee.DoesNotExist:
+                        continue
+                else:
+                    pass
+                    #logger.info(f"No vehicle match found for plateText: {violation['Registration Num']}")
+            record = OldCameraUploadRecord(upload_date=datetime.now(),
+                                    dateFrom=min_date,
+                                    dateTo=max_date)
+            record.save()
+            return Response({'message':'Data uploaded successfully'},status=200)   
+        except Exception as e:
+            return Response({'error':str(e)},status=500)
 
 @api_view(['GET','POST'])
 def get_employees(request):
@@ -149,7 +213,10 @@ def update_speed_violations(request): #used to update the database with violatio
                                 plate_text=violation['plateText'],
                                 speed=int(float((violation['speedObserved'])) * 1.60934)  # mph to km/h
                                 )
-                                speed_violation.save()
+                                try:
+                                    speed_violation.save()
+                                except IntegrityError:
+                                    print("Duplicate speed violation entry ignored.")
                         except Employee.DoesNotExist:
                                 print(f"Employee with staff_no {vehicle.staff_no} does not exist.")
                 else:
@@ -160,7 +227,7 @@ def update_speed_violations(request): #used to update the database with violatio
 def get_no_of_speed_violations(request, start_date, end_date, no_of_violations, speed):
     start_date = datetime.strptime(str(start_date)+" 00:00:01", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
     end_date = datetime.strptime(str(end_date)+" 23:59:59", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-    query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gte=speed)
+    query_result = SpeedViolations.objects.filter(date__gte=start_date, date__lte=end_date, speed__gt=speed)
     result = []
     staff_nos = []
     for q in query_result:

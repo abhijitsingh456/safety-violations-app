@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from django.db.models import Q
 import logging
-
+from django.db import IntegrityError
 
 logger = logging.getLogger(__name__)
 @shared_task
@@ -62,8 +62,10 @@ def update_safety_violations():
                 plate_text=violation['plateText'],
                 speed=int(float((violation['speedObserved'])) * 1.60934)  # mph to km/h
                 )
-                speed_violation.save()
-                #logger.info(f"Saved violation for {employee.name}")
+                try:
+                    speed_violation.save()
+                except IntegrityError:
+                    logger.info("Duplicate speed violation entry ignored.")
             except Employee.DoesNotExist:
                 continue
         else:

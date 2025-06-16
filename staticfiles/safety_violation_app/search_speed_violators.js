@@ -2,8 +2,8 @@ Vue.createApp({
     data() {
         return {
             isSidebarCollapsed: true,
-            staffNo: '',
-            vehicleNo: '',
+            staffNo: null,
+            vehicleNo: null,
             startDate: '',
             endDate: '',
             speed: 30,
@@ -18,11 +18,11 @@ Vue.createApp({
         },
         async fetchViolations() {
             url=''
-            if(this.staffNo=='' && this.vehicleNo!=''){
+            if(this.staffNo==null && this.vehicleNo!=null){
                 url=`/api/search_speed_violations/any/${this.vehicleNo}/${this.startDate}/${this.endDate}/${this.speed}/`
-            }else if(this.vehicleNo=='' && this.staffNo!=''){
+            }else if(this.vehicleNo==null && this.staffNo!=null){
                 url=`/api/search_speed_violations/${this.staffNo}/any/${this.startDate}/${this.endDate}/${this.speed}/`
-            }else if(this.staffNo=='' && this.vehicleNo==''){
+            }else if(this.staffNo==null && this.vehicleNo==null){
                 url=`/api/search_speed_violations/any/any/${this.startDate}/${this.endDate}/${this.speed}/`
             }   
             try{
@@ -78,6 +78,7 @@ Vue.createApp({
           });
         const urlParams = new URLSearchParams(window.location.search)
         this.staffNo = urlParams.get('staffNo')
+        this.vehicleNo = urlParams.get('vehicleNo')
         this.startDate = urlParams.get('startDate')
         this.endDate = urlParams.get('endDate')
         this.speed = urlParams.get('speed')

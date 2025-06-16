@@ -25,3 +25,12 @@ class NoOfSpeedViolationSerializer(serializers.Serializer):
     department = serializers.CharField(max_length=100)
     designation = serializers.CharField(max_length=100)
     no_of_violations = serializers.CharField(max_length=100)
+
+class OldCameraUploadRecordSerializer(serializers.ModelSerializer):
+    upload_date = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    dateFrom = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    dateTo = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        model = OldCameraUploadRecord
+        fields = '__all__'

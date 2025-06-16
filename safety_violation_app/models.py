@@ -23,3 +23,11 @@ class SpeedViolations(models.Model):
     plate_text = models.CharField(max_length=100)
     speed = models.IntegerField()
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='violations')
+
+    class Meta:
+        unique_together = ('employee', 'date', 'location', 'plate_text', 'speed')
+
+class OldCameraUploadRecord(models.Model):
+    upload_date = models.DateTimeField("Date of Upload")
+    dateFrom = models.DateTimeField("Date & Time of First Entry in the records uploaded")
+    dateTo = models.DateTimeField("Date & Time of Last Entry in the records uploaded")
